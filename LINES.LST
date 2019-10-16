@@ -1,0 +1,22 @@
+Publics by module
+
+ELIPSE10	size = 542
+	_ELIPSE10                       
+
+LINE10  	size = 369
+	_LINE10                         
+
+LINEX10 	size = 373
+	_LINEX10                        
+
+PXADDR10	size = 34
+	PIXELADDR10                     
+
+SCRORIG 	size = 163
+	_SCREENORIGIN                   
+
+SETPEL10	size = 54
+	_SETPIXEL10                     
+
+SPLITSCR	size = 85
+	_SPLITSCREEN                    

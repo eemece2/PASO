@@ -1,0 +1,8 @@
+*.swp
+*.swo
+*.OBJ
+*.EXE
+*.BKP
+LIB/*.OBJ
+paso
+
