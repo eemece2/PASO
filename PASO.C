@@ -173,8 +173,12 @@ int main()
 	ase=35*PI2/360.0;
 	asi=35*PI2/360.0;
 	chapa=0.6;
+    printf("geometria: acceso_datosj:%s\n", acceso_datos);
 	cargarGeometria(acceso_datos,acceso,&env,&cuerda_m,&cuerda_e,
 			&f,&b,&g,&alturaxy,&alturauv);
+
+    printf("geometria: cuerda_m:%i\n", cuerda_m);
+
 	setMaterial(4,&material,&velocidad,&intensidad);
 	textoxy(10,200,"Material:");
 	textoxy(100,200,materiales[material-1]);
@@ -280,6 +284,8 @@ int main()
 		getchar();
 
 		if(lectura_perfil(acceso,nombre,&num_b,&id_ba,xb,yb)==1) break;
+
+        printf("cuerda_e %i\n", cuerda_e);
 
 		calculo_tray_perfil(cuerda_e,cuerda_m,g,f,alturaxy,alturauv,
 					xt,yt,ut,vt,xb,yb,num_b,id_ba,ini,num_t,tipo_salida,
@@ -1096,6 +1102,8 @@ int lectura_perfil(char *acceso,char *nombre,int *num_b,int *id_ba,float *xb,flo
 	int i,fin;
 	int nada;
 
+    printf("LECTURA_PERFIL\n");
+
 	if((fptr=fopen(acceso,"rt"))!=NULL)
 	{
 		fscanf(fptr,"%[^\n]\n",nombre);
@@ -1114,6 +1122,8 @@ int lectura_perfil(char *acceso,char *nombre,int *num_b,int *id_ba,float *xb,flo
 			fscanf(fptr,"%f",&xb[i]);
 			fin=fscanf(fptr,"%f",&yb[i]);
 			if((xb[i]<0.001)&(fin==1)) *id_ba=i;
+
+            printf("xb,yb: %f,%f\n", xb[i], yb[i]);
 			i++;
 		}
 		*num_b=i-1;
@@ -1143,6 +1153,7 @@ void calculo_tray_perfil(int cuerda_e,int cuerda_m,int g,int f,
 			float *xb,float *yb,int num_b,int id_ba,int *ini,int *num_t,int tipo_salida,
 			int semiala,float ase,float asi,float chapa)
 {
+    printf("CALCULO_TRAY_PERFIL\n");
 	int xp[500],yp[500],up[500],vp[500];
 	int xe[500],ye[500],ue[500],ve[500];
 	int num_e,id_bae;
@@ -1167,11 +1178,18 @@ void calculo_tray_perfil(int cuerda_e,int cuerda_m,int g,int f,
 /* Calculo de perfiles en la cuerda encastre y marginal */
 	for(ib=0;ib<num_b;ib++)
 	{
-		xp[ib]=dx+exy*(1.0-xb[ib]);
-		yp[ib]=dy+exy*yb[ib];
-		up[ib]=du+euv*(1.0-xb[ib]);
-		vp[ib]=dv+euv*yb[ib];
+        // float res = dx + exy * (1.0 - xb[ib]);
+        // printf("dx %f,exy %i, res %f, xb[ib] %f\n", dx, exy, res, xb[ib]);// (1.0 - xb[ib]), (1.0 - yb[ib]));
+        // printf("test %f\n", (1.0 - xb[ib]) * exy);// (1.0 - xb[ib]), (1.0 - yb[ib]));
+		xp[ib] = dx + exy * (1.0 - xb[ib]);
+		yp[ib] = dy + exy * yb[ib];
+		up[ib] = du + euv * (1.0 - xb[ib]);
+		vp[ib] = dv + euv * yb[ib];
+
+        printf("xp,yp,up,vp: %i,%i,%i,%i\n", xp[ib], yp[ib], up[ib], vp[ib]);
 	}
+
+    printf("exy %i, RPL %i, cuerda_e %i\n", exy, RPL, cuerda_e);// (1.0 - xb[ib]), (1.0 - yb[ib]));
 
 	num_e=num_b;
 	id_bae=id_ba;
@@ -1410,11 +1428,11 @@ void cargarGeometria(char *acceso_datos,char *acceso,int *env,int *cuerda_m,int 
 		fscanf(fptr,"%s %i\n",cadena,&env);
 		printf("Envergadura: %i\n", env);
 
-		fscanf(fptr,"%s %i\n",cadena, &cuerda_e);
-		printf("C.encastre: %i\n", cuerda_e);
+		fscanf(fptr,"%s %i\n",cadena, cuerda_e);
+		printf("C.encastre: %i\n", *cuerda_e);
 
-		fscanf(fptr,"%s %i\n",cadena, &cuerda_m);
-		printf("C.marginal: %i\n", cuerda_m);
+		fscanf(fptr,"%s %i\n",cadena, cuerda_m);
+		printf("C.marginal: %i\n", *cuerda_m);
 
 		fscanf(fptr,"%s %i\n",cadena, &f);
 		printf("Flecha: %i\n", f);
@@ -1432,6 +1450,8 @@ void cargarGeometria(char *acceso_datos,char *acceso,int *env,int *cuerda_m,int 
 		fscanf(fptr,"%s %i\n",cadena, &alturauv);
 		printf("Altura marginal: %i\n", alturauv);
 		alturauv-=HBASE;
+
+        printf("cargageometria: cuerda_m:%i\n", *cuerda_m);
 
 		if(fclose(fptr)!=0)
 		{
