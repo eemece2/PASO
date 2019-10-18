@@ -248,7 +248,7 @@ int main()
 		while(!kbhit())
 		{
 			pausa(velocidad);
-			cport=CIN(CPORT);
+			cpord=CIN(CPORT);
 			if((cport & 1)==0)
 			{
 				pasomotor(MA,1);
@@ -285,7 +285,7 @@ int main()
 
 		if(lectura_perfil(acceso,nombre,&num_b,&id_ba,xb,yb)==1) break;
 
-        printf("cuerda_e %i\n", cuerda_e);
+        // printf("cuerda_e %i\n", cuerda_e);
 
 		calculo_tray_perfil(cuerda_e,cuerda_m,g,f,alturaxy,alturauv,
 					xt,yt,ut,vt,xb,yb,num_b,id_ba,ini,num_t,tipo_salida,
@@ -294,23 +294,36 @@ int main()
         // Escribir a fichero
 		if((fptr=fopen("perfil.gcode","wt"))!=NULL)
         {
-            printf("GCODE");
+            printf("GCODE\n");
         }
 		for(seg=0;seg<=1;seg++)
 		{
 			grafico_tray(ini[seg],num_t[seg],xt,yt,ut,vt);
+
 			rel_vel=(float)cuerda_m/cuerda_e;
+
 			radio_quemado(material,rel_vel,&distxy,&distuv);
+            printf("radio_quemado: %f, %f\n", distxy, distuv);
+
 			calculo_desplaz(ini[seg],num_t[seg],rel_vel,
 				 distxy,distuv,xt,yt,ut,vt,xd,yd,ud,vd,-semiala);
+
 			grafico_tray(ini[seg],num_t[seg],xd,yd,ud,vd);
+
 			calculo_carros(ini[seg],num_t[seg],b,env,xd,yd,ud,vd,
 							xc,yc,uc,vc);
+
 			grafico_tray(ini[seg],num_t[seg],xc,yc,uc,vc);
+
 			grafico_planta(b,env);
+
 			cxy=cuerda_m+(float)(cuerda_e-cuerda_m)*(env+b)/(float)env;
 			velocidadxy=(float)velocidad*cxy/(float)cuerda_e;
+
 			corte(fptr, ini[seg],num_t[seg],vel_desp,velocidadxy,xc,yc,uc,vc);
+
+            fprintf(fptr, "M226\n");
+
 			getchar();
 		}
         if(fclose(fptr)!=0)
@@ -947,6 +960,7 @@ void calculo_desplaz(int ini,int num_t,float rel,float distxy,float distuv,
 	float betaxym,betauvm;
 	float dpxy,dpuv;
 
+    // printf("CALCULO_DESPLAZ\n");
         if(lado==1) lado=-1;
 	if(lado==0) lado=1;
 
@@ -982,6 +996,8 @@ void calculo_desplaz(int ini,int num_t,float rel,float distxy,float distuv,
 		yd[k]=yt[k]+dpxy*sin(betaxym);
 		ud[k]=ut[k]+dpuv*cos(betauvm);
 		vd[k]=vt[k]+dpuv*sin(betauvm);
+
+        // printf("CALCULO_DESPLAZ: %i, %i, %i, %i \n", xd[k], yd[k], ud[k], vd[k]);
 	}
 	j=ini+num_t-1;
 	xd[j]=xt[j]+lado*distxy*cos(PID2+atan2(yt[j]-yt[j-1],xt[j]-xt[j-1]));
@@ -1049,13 +1065,18 @@ void calculo_carros(int ini,int num_t,int b,int env,
 {
 	int i,k;
 
+    // printf("CALCULO_CARROS\n");
+    // printf("CALCULO_CARROS::: %i, %i\n", b, env);
+
 	for(i=0;i<=num_t;i++)
 	{
 		k=ini+i;
-		xc[k]=xd[k]-((float)b*(ud[k]-xd[k]))/env;
-		uc[k]=ud[k]+((float)(lng-env-b)*(ud[k]-xd[k]))/env;
-		yc[k]=yd[k]-((float)b*(vd[k]-yd[k]))/env;
-		vc[k]=vd[k]+((float)(lng-env-b)*(vd[k]-yd[k]))/env;
+		xc[k] = xd[k] - ((float)b * (ud[k] - xd[k])) / env;
+		uc[k] = ud[k] + ((float)(lng-env-b) * (ud[k] - xd[k])) / env;
+		yc[k] = yd[k] - ((float)b * (vd[k] - yd[k])) / env;
+		vc[k] = vd[k] + ((float)(lng - env - b) * (vd[k] - yd[k])) / env;
+
+        // printf("CALCULO_CARROS: %i, %i, %i, %i\n", xc[k], yc[k], uc[k], vc[k]);
 	}
 }
 
@@ -1075,8 +1096,9 @@ void corte(FILE *file, int ini,int num_t,int vel_desp,int velocidad,int *xc,int 
 	for(i=1;i<num_t;i++)
 	{
 		k=ini+i;
+        // printf("corte %i: %i %i %i %i\n", i, xc[k],yc[k],uc[k],vc[k]);
         printf("corte %i: %i %i %i %i\n", i, xc[k],yc[k],uc[k],vc[k]);
-        fprintf(file, "%i: %i %i %i %i\n", i, xc[k],yc[k],uc[k],vc[k]);
+        fprintf(file, "G01 X%i Y%i U%i V%i\n", i, xc[k],yc[k],uc[k],vc[k]);
 		linea_to(xc[k],yc[k],uc[k],vc[k],velocidad);
 /*		linea_planta(xc[k],0,uc[k],(long)RPL*lng,LIGHTGRAY); */
 	}
@@ -1123,7 +1145,7 @@ int lectura_perfil(char *acceso,char *nombre,int *num_b,int *id_ba,float *xb,flo
 			fin=fscanf(fptr,"%f",&yb[i]);
 			if((xb[i]<0.001)&(fin==1)) *id_ba=i;
 
-            printf("xb,yb: %f,%f\n", xb[i], yb[i]);
+            // printf("xb,yb: %f,%f\n", xb[i], yb[i]);
 			i++;
 		}
 		*num_b=i-1;
@@ -1153,7 +1175,7 @@ void calculo_tray_perfil(int cuerda_e,int cuerda_m,int g,int f,
 			float *xb,float *yb,int num_b,int id_ba,int *ini,int *num_t,int tipo_salida,
 			int semiala,float ase,float asi,float chapa)
 {
-    printf("CALCULO_TRAY_PERFIL\n");
+    // printf("CALCULO_TRAY_PERFIL\n");
 	int xp[500],yp[500],up[500],vp[500];
 	int xe[500],ye[500],ue[500],ve[500];
 	int num_e,id_bae;
@@ -1186,10 +1208,10 @@ void calculo_tray_perfil(int cuerda_e,int cuerda_m,int g,int f,
 		up[ib] = du + euv * (1.0 - xb[ib]);
 		vp[ib] = dv + euv * yb[ib];
 
-        printf("xp,yp,up,vp: %i,%i,%i,%i\n", xp[ib], yp[ib], up[ib], vp[ib]);
+        // printf("xp,yp,up,vp: %i,%i,%i,%i\n", xp[ib], yp[ib], up[ib], vp[ib]);
 	}
 
-    printf("exy %i, RPL %i, cuerda_e %i\n", exy, RPL, cuerda_e);// (1.0 - xb[ib]), (1.0 - yb[ib]));
+    // printf("exy %i, RPL %f, cuerda_e %i\n", exy, RPL, cuerda_e);// (1.0 - xb[ib]), (1.0 - yb[ib]));
 
 	num_e=num_b;
 	id_bae=id_ba;
@@ -1425,8 +1447,8 @@ void cargarGeometria(char *acceso_datos,char *acceso,int *env,int *cuerda_m,int 
 		fscanf(fptr,"%s %s\n",cadena,acceso);
 		printf("Perfil: %s\n", acceso);
 
-		fscanf(fptr,"%s %i\n",cadena,&env);
-		printf("Envergadura: %i\n", env);
+		fscanf(fptr,"%s %i\n",cadena, env);
+		printf("Envergadura: %i\n", *env);
 
 		fscanf(fptr,"%s %i\n",cadena, cuerda_e);
 		printf("C.encastre: %i\n", *cuerda_e);
@@ -1434,24 +1456,23 @@ void cargarGeometria(char *acceso_datos,char *acceso,int *env,int *cuerda_m,int 
 		fscanf(fptr,"%s %i\n",cadena, cuerda_m);
 		printf("C.marginal: %i\n", *cuerda_m);
 
-		fscanf(fptr,"%s %i\n",cadena, &f);
-		printf("Flecha: %i\n", f);
+		fscanf(fptr,"%s %i\n",cadena, f);
+		printf("Flecha: %i\n", *f);
 
-		fscanf(fptr,"%s %i\n",cadena, &g);
-		printf("G: %i\n", g);
+		fscanf(fptr,"%s %i\n",cadena, g);
+		printf("G: %i\n", *g);
 
-		fscanf(fptr,"%s %i\n",cadena, &b);
-		printf("B: %i\n", b);
+		fscanf(fptr,"%s %i\n",cadena, b);
+		printf("B: %i\n", *b);
 
-		fscanf(fptr,"%s %i\n",cadena, &alturaxy);
-		printf("Altura encastre: %i\n", alturaxy);
+		fscanf(fptr,"%s %i\n",cadena, alturaxy);
+		printf("Altura encastre: %i\n", *alturaxy);
 		alturaxy-=HBASE;
 
-		fscanf(fptr,"%s %i\n",cadena, &alturauv);
-		printf("Altura marginal: %i\n", alturauv);
+		fscanf(fptr,"%s %i\n",cadena, alturauv);
+		printf("Altura marginal: %i\n", *alturauv);
 		alturauv-=HBASE;
 
-        printf("cargageometria: cuerda_m:%i\n", *cuerda_m);
 
 		if(fclose(fptr)!=0)
 		{
